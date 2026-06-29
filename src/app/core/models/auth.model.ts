@@ -1,13 +1,14 @@
 /**
- * Modelos de autenticação, alinhados ao contrato de /auth.
+ * Modelos de autenticação, alinhados ao contrato de /auth e /me.
  *
- * Observação importante sobre papéis (roles):
- * o JWT emitido pelo backend carrega apenas `sub` (email), `jti` e `exp` —
- * NÃO há claim de papel. O backend resolve as authorities consultando o banco
- * a cada requisição, e não existe endpoint `/me`. Portanto o front sabe apenas
- * SE o usuário está autenticado e QUAL o email; o papel não é exposto ao cliente
- * (ver nota no AuthService).
+ * O backend expõe o papel ao cliente de duas formas:
+ * - claim `role` no JWT (para decisão de UI imediata, sem round-trip);
+ * - `GET /me` (fonte autoritativa, lida do banco).
+ * A autorização fina permanece aplicada no servidor.
  */
+
+/** Papéis do domínio (UserRole no backend). */
+export type UserRole = 'ADMIN' | 'ORGANIZER' | 'CUSTOMER' | 'USER';
 
 export interface LoginRequest {
   email: string;
@@ -31,6 +32,8 @@ export interface AuthResponse {
 export interface JwtPayload {
   /** subject = email do usuário */
   sub: string;
+  /** papel do usuário (claim `role`) */
+  role?: UserRole;
   /** id único do token (jti) */
   jti?: string;
   /** expiração em segundos (epoch) */
@@ -42,6 +45,16 @@ export interface JwtPayload {
 /** Usuário autenticado derivado do token. */
 export interface AuthUser {
   email: string;
+  /** papel obtido do claim do token (refinado por /me) */
+  role: UserRole | null;
   /** expiração do access token em ms (epoch) */
   expiresAt: number;
+}
+
+/** Resposta de GET /me — perfil autoritativo do usuário. */
+export interface MeResponse {
+  id: string;
+  email: string;
+  role: UserRole;
+  createdAt: string;
 }

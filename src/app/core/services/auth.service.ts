@@ -8,7 +8,9 @@ import {
   AuthUser,
   JwtPayload,
   LoginRequest,
+  MeResponse,
   RegisterRequest,
+  UserRole,
 } from '../models/auth.model';
 
 const TOKEN_KEY = 'tf.accessToken';
@@ -19,11 +21,9 @@ const TOKEN_KEY = 'tf.accessToken';
  * O estado é exposto via Signals; RxJS é usado apenas nas chamadas HTTP.
  * O access token é persistido em localStorage para sobreviver a reloads.
  *
- * Limitação conhecida: o backend não expõe o papel (role) do usuário ao cliente
- * (sem claim no JWT e sem endpoint /me). Por isso `AuthService` cobre apenas
- * autenticação (logado / não logado). Autorização por papel deve ser validada
- * no backend; um `roleGuard` no front só será viável quando o backend expuser
- * o papel (claim no token ou endpoint de perfil).
+ * Papel (role): derivado de imediato do claim `role` do JWT (disponível de forma
+ * síncrona, inclusive após reload — o que permite o `roleGuard`) e refinado pela
+ * fonte autoritativa `GET /me`. A autorização fina permanece no servidor.
  */
 @Injectable({ providedIn: 'root' })
 export class AuthService {
@@ -33,13 +33,16 @@ export class AuthService {
   /** Token de acesso atual (fonte de verdade do estado de sessão). */
   private readonly accessToken = signal<string | null>(this.readStoredToken());
 
+  /** Papel autoritativo vindo de GET /me (sobrepõe o claim do token quando disponível). */
+  private readonly profileRole = signal<UserRole | null>(null);
+
   /** Usuário autenticado derivado do token, ou null. */
   readonly user = computed<AuthUser | null>(() => {
     const token = this.accessToken();
     if (!token) return null;
     const payload = this.decode(token);
     if (!payload) return null;
-    return { email: payload.sub, expiresAt: payload.exp * 1000 };
+    return { email: payload.sub, role: payload.role ?? null, expiresAt: payload.exp * 1000 };
   });
 
   /** true quando há token válido e não expirado. */
@@ -50,19 +53,49 @@ export class AuthService {
 
   readonly userEmail = computed(() => this.user()?.email ?? null);
 
+  /** Papel efetivo: /me (autoritativo) tem precedência sobre o claim do token. */
+  readonly role = computed<UserRole | null>(() => this.profileRole() ?? this.user()?.role ?? null);
+
   /** Refresh em andamento (compartilhado para evitar chamadas concorrentes). */
   private refresh$: Observable<string> | null = null;
+
+  constructor() {
+    // Em reload com sessão válida, busca o perfil autoritativo.
+    // Diferido para fora do construtor: a requisição passa pelo authInterceptor,
+    // que faz inject(AuthService) — disparar de forma síncrona aqui criaria uma
+    // dependência circular de DI.
+    if (this.isAuthenticated()) {
+      queueMicrotask(() => this.loadProfile().subscribe({ error: () => undefined }));
+    }
+  }
+
+  /** true se o usuário possui algum dos papéis informados. */
+  hasAnyRole(...roles: UserRole[]): boolean {
+    const current = this.role();
+    return current != null && roles.includes(current);
+  }
+
+  /** GET /me — carrega o perfil autoritativo e atualiza o papel. */
+  loadProfile(): Observable<MeResponse> {
+    return this.http
+      .get<MeResponse>(`${environment.apiBaseUrl}/me`)
+      .pipe(tap((me) => this.profileRole.set(me.role)));
+  }
 
   /** Token atual (bruto) para uso pelo interceptor. */
   getAccessToken(): string | null {
     return this.accessToken();
   }
 
-  /** POST /auth/login — autentica e armazena o access token. */
+  /** POST /auth/login — autentica, armazena o token e carrega o perfil. */
   login(credentials: LoginRequest): Observable<AuthResponse> {
     return this.http
       .post<AuthResponse>(`${this.baseUrl}/login`, credentials, { withCredentials: true })
-      .pipe(tap((res) => this.setToken(res.accessToken)));
+      .pipe(
+        tap((res) => this.setToken(res.accessToken)),
+        // Busca o perfil autoritativo em paralelo; não bloqueia o login se falhar.
+        tap(() => this.loadProfile().subscribe({ error: () => undefined })),
+      );
   }
 
   /** POST /auth/register — cria um CUSTOMER (não autentica). */
@@ -117,6 +150,7 @@ export class AuthService {
 
   private clearToken(): void {
     this.accessToken.set(null);
+    this.profileRole.set(null);
     try {
       localStorage.removeItem(TOKEN_KEY);
     } catch {

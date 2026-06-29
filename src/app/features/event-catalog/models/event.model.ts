@@ -3,6 +3,9 @@
  * Alinhados ao contrato público da API (GET /events, GET /events/{id}).
  */
 
+/** Status de um evento no backend. Apenas PUBLISHED aparece na busca pública. */
+export type EventStatus = 'DRAFT' | 'PUBLISHED' | 'CANCELLED';
+
 export interface Event {
   id: string;
   title: string;
@@ -10,6 +13,7 @@ export interface Event {
   /** ISO-8601 (ex.: "2026-09-10T19:30:00Z") */
   eventDate: string;
   location: string;
+  status: EventStatus;
   organizerId: string;
   createdAt: string;
   updatedAt: string;
