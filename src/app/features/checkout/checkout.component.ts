@@ -15,6 +15,10 @@ import { Router, RouterLink } from '@angular/router';
 import { switchMap, takeWhile, timer } from 'rxjs';
 
 import { OrderService } from '../../core/services/order.service';
+import {
+  OrderStatusBadgeComponent,
+  orderStatusLabel,
+} from '../../shared/components/order-status-badge/order-status-badge.component';
 import { SpinnerComponent } from '../../shared/components/spinner/spinner.component';
 import { EventService } from '../event-catalog/services/event.service';
 import { Order, OrderStatus } from '../../shared/models/order.model';
@@ -23,7 +27,7 @@ import { Order, OrderStatus } from '../../shared/models/order.model';
 @Component({
   selector: 'app-checkout',
   standalone: true,
-  imports: [RouterLink, CurrencyPipe, LowerCasePipe, SpinnerComponent],
+  imports: [RouterLink, CurrencyPipe, LowerCasePipe, OrderStatusBadgeComponent, SpinnerComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <section class="mx-auto max-w-2xl px-4 py-8">
@@ -47,9 +51,7 @@ import { Order, OrderStatus } from '../../shared/models/order.model';
                 <p class="mt-2 font-semibold text-gray-900">{{ eventTitle() }}</p>
               }
             </div>
-            <span class="rounded-full px-3 py-1 text-xs font-semibold" [class]="badgeClass(ord.status)">
-              {{ statusLabel(ord.status) }}
-            </span>
+            <app-order-status-badge [status]="ord.status" />
           </div>
 
           <div class="flex items-center justify-between border-t border-gray-100 pt-4">
@@ -105,7 +107,7 @@ import { Order, OrderStatus } from '../../shared/models/order.model';
             </ul>
           } @else {
             <div class="rounded-lg bg-gray-100 px-4 py-3 text-sm text-gray-600">
-              Este pedido está {{ statusLabel(ord.status) | lowercase }}.
+              Este pedido está {{ label(ord.status) | lowercase }}.
             </div>
           }
         </div>
@@ -231,25 +233,8 @@ export class CheckoutComponent implements OnInit {
       .subscribe({ next: (order) => this.order.set(order), error: () => undefined });
   }
 
-  statusLabel(status: OrderStatus): string {
-    const labels: Record<OrderStatus, string> = {
-      PENDING: 'Aguardando pagamento',
-      PAID: 'Pago',
-      CANCELLED: 'Cancelado',
-      EXPIRED: 'Expirado',
-      REFUNDED: 'Estornado',
-    };
-    return labels[status];
-  }
-
-  badgeClass(status: OrderStatus): string {
-    const classes: Record<OrderStatus, string> = {
-      PENDING: 'bg-amber-100 text-amber-800',
-      PAID: 'bg-green-100 text-green-800',
-      CANCELLED: 'bg-gray-200 text-gray-700',
-      EXPIRED: 'bg-gray-200 text-gray-700',
-      REFUNDED: 'bg-purple-100 text-purple-800',
-    };
-    return classes[status];
+  /** Rótulo legível do status (reutiliza o helper compartilhado). */
+  label(status: OrderStatus): string {
+    return orderStatusLabel(status);
   }
 }
