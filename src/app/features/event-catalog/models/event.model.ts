@@ -26,6 +26,27 @@ export interface TicketBatch {
   price: number;
   totalCapacity: number;
   availableSeats: number;
+  /** Janela de vendas opcional (ISO-8601). Nula = sem restrição. */
+  salesStartAt?: string | null;
+  salesEndAt?: string | null;
+}
+
+/** Payload de criação/atualização de evento (POST /events, PUT /events/{id}). */
+export interface EventRequest {
+  title: string;
+  description: string;
+  /** ISO-8601, deve estar no futuro. */
+  eventDate: string;
+  location: string;
+}
+
+/** Payload de criação de lote (POST /events/{eventId}/ticket-batches). */
+export interface TicketBatchRequest {
+  name: string;
+  price: number;
+  totalCapacity: number;
+  salesStartAt?: string | null;
+  salesEndAt?: string | null;
 }
 
 /** Filtros aceitos por GET /events. */

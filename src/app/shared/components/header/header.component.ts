@@ -19,6 +19,9 @@ import { AuthService } from '../../../core/services/auth.service';
           <a routerLink="/events" class="hover:text-brand">Eventos</a>
 
           @if (auth.isAuthenticated()) {
+            @if (auth.hasAnyRole('ORGANIZER', 'ADMIN')) {
+              <a routerLink="/organizer/events" class="hover:text-brand">Organizador</a>
+            }
             <a routerLink="/dashboard/orders" class="hover:text-brand">Meus pedidos</a>
             <span class="hidden text-gray-400 sm:inline">{{ auth.userEmail() }}</span>
             <button (click)="logout()" class="hover:text-brand">Sair</button>

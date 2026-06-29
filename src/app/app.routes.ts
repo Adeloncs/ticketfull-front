@@ -20,5 +20,10 @@ export const routes: Routes = [
     loadChildren: () =>
       import('./features/user-dashboard/user-dashboard.routes').then((m) => m.USER_DASHBOARD_ROUTES),
   },
+  {
+    path: 'organizer',
+    loadChildren: () =>
+      import('./features/organizer/organizer.routes').then((m) => m.ORGANIZER_ROUTES),
+  },
   { path: '**', redirectTo: 'events' },
 ];
