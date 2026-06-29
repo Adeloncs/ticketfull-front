@@ -34,5 +34,11 @@ export const ORGANIZER_ROUTES: Routes = [
       },
     ],
   },
+  {
+    path: 'checkin',
+    canActivate: [roleGuard('ORGANIZER', 'ADMIN')],
+    loadComponent: () => import('./checkin/checkin.component').then((m) => m.CheckinComponent),
+    title: 'Check-in · Ticketfull',
+  },
   { path: '', redirectTo: 'events', pathMatch: 'full' },
 ];

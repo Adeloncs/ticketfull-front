@@ -9,6 +9,7 @@ import {
   TicketBatch,
   TicketBatchRequest,
 } from '../../features/event-catalog/models/event.model';
+import { Ticket } from '../../shared/models/order.model';
 import { PagedModel } from '../../shared/models/paged-model';
 
 /** Filtros de paginação para GET /events/mine. */
@@ -59,5 +60,13 @@ export class OrganizerService {
   /** POST /events/{eventId}/ticket-batches — cria um lote de ingressos. */
   createBatch(eventId: string, request: TicketBatchRequest): Observable<TicketBatch> {
     return this.http.post<TicketBatch>(`${this.baseUrl}/${eventId}/ticket-batches`, request);
+  }
+
+  /** POST /tickets/{codeHash}/validate — check-in na portaria (marca como USED). */
+  validateTicket(codeHash: string): Observable<Ticket> {
+    return this.http.post<Ticket>(
+      `${environment.apiBaseUrl}/tickets/${encodeURIComponent(codeHash)}/validate`,
+      {},
+    );
   }
 }

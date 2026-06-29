@@ -18,14 +18,22 @@ const PAGE_SIZE = 10;
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <section class="mx-auto max-w-3xl px-4 py-8">
-      <div class="flex items-center justify-between">
+      <div class="flex items-center justify-between gap-3">
         <h1 class="text-2xl font-bold text-gray-900">Meus eventos</h1>
-        <a
-          routerLink="/organizer/events/new"
-          class="rounded-lg bg-brand px-4 py-2 text-sm font-medium text-white transition hover:bg-brand-dark"
-        >
-          + Novo evento
-        </a>
+        <div class="flex items-center gap-2">
+          <a
+            routerLink="/organizer/checkin"
+            class="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 transition hover:bg-gray-50"
+          >
+            Check-in
+          </a>
+          <a
+            routerLink="/organizer/events/new"
+            class="rounded-lg bg-brand px-4 py-2 text-sm font-medium text-white transition hover:bg-brand-dark"
+          >
+            + Novo evento
+          </a>
+        </div>
       </div>
 
       @if (actionError()) {
